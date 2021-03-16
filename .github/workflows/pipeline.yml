@@ -7,90 +7,90 @@ env:
   IBM_CLOUD_RESOURCE_GROUP: ${{ secrets.IBM_CLOUD_RESOURCE_GROUP }}
   IKS_CLUSTER: ${{ secrets.IKS_CLUSTER }} # name or id of cluster
   NAMESPACE: ${{ secrets.NAMESPACE }}
-  IP: ${{ secrets.IKS_CLUSTER_IP }}
+  IP: ${{ secrets.CLUSTER_IP }}
   IMAGE_NAME: node-hello-world
   PORT: 30002
 
 jobs:
   fetch-code:
-    runs-on: 'ubuntu-latest'
-    name: Fetch Latest Code
-    steps:
-      - uses: actions/checkout@master
-      with:
-        fetch-depth: 0
-  dependcy-check:
+    build:
+      runs-on: 'ubuntu-latest'
+      name: Fetch Latest Code
+      steps:
+        - uses: actions/checkout@master
+          with:
+          fetch-depth: 0
+dependcy-check:
     name: OWASP Dependency Check
-    runs-on: 'ubuntu-latest'
-    needs: fetch-code
-    steps:
-    - uses: sburris/dependency-check-action@master
-      with:
-        Project-Name: ${{ env.IMAGE_NAME }}
+    build:
+      runs-on: 'ubuntu-latest'
+      needs: fetch-code
+      steps:
+      - uses: sburris/dependency-check-action@master
+        with:
+          Project-Name: ${{ env.IMAGE_NAME }}
 
 check-for-secrets:
     name: Detect Secrets
-    runs-on: 'ubuntu-latest'
-    needs: fetch-code
-    steps:
-      - name: Run Yelp's detect-secrets
-        uses: RobertFischer/detect-secrets-action@v2.0.0
-      - name: Commit back .secrets.baseline (if it was missing)
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "build(detect-secrets): Commit the newly-generated .secrets.baseline file"
+    build:
+      runs-on: 'ubuntu-latest'
+      needs: fetch-code
+      steps:
+        - name: Run Yelp's detect-secrets
+          uses: RobertFischer/detect-secrets-action@v2.0.0
+        - name: Commit back .secrets.baseline (if it was missing)
+          uses: stefanzweifel/git-auto-commit-action@v4
+          with:
+            commit_message: "build(detect-secrets): Commit the newly-generated .secrets.baseline file"
 
 Build-publish-Image:
     name: Build and Push Image
     needs: [dependcy-check, check-for-secrets]
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      -
-        name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          tags: ${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
-      -
-        name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+    build:  
+      runs-on: ubuntu-latest
+      steps:
+        - name: Set up QEMU
+          uses: docker/setup-qemu-action@v1
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v1
+        - name: Login to DockerHub
+          uses: docker/login-action@v1
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+        - name: Build and push
+          id: docker_build
+          uses: docker/build-push-action@v2
+          with:
+            push: true
+            tags: ${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+        - name: Image digest
+          run: echo ${{ steps.docker_build.outputs.digest }}
 
 VA:
     name: Anchore Container Scan
     needs: Build-publish-Image
-    runs-on: ubuntu-latest
-    steps:
-      -
-        name: V(uln) A(ssessment) scan
-        uses: anchore/scan-action@v2
-        with:
-          image: "${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:latest"
-          fail-build: true
-          acs-report-enable: true
-      - name: upload Anchore scan SARIF report
-        uses: github/codeql-action/upload-sarif@v1
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
+    buidl:
+      runs-on: ubuntu-latest
+      steps:
+        - name: V(uln) A(ssessment) scan
+          uses: anchore/scan-action@v2
+          with:
+            image: "${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}:latest"
+            fail-build: true
+            acs-report-enable: true
+        - name: upload Anchore scan SARIF report
+          uses: github/codeql-action/upload-sarif@v1
+          with:
+            sarif_file: ${{ steps.scan.outputs.sarif }}
 
 zap_scan:
     needs: Deploy
-    runs-on: ubuntu-latest
-    name: OWASP ZAP-DAST
-    steps:
-      - name: ZAP Scan
-        uses: zaproxy/action-full-scan@v0.1.0
-        with:
-          target: 'http://${{ env.IP }}:${{ env.PORT }}/'
+    build:
+      runs-on: ubuntu-latest
+      name: OWASP ZAP-DAST
+      steps:
+        - name: ZAP Scan
+          uses: zaproxy/action-full-scan@v0.1.0
+          with:
+            target: 'http://${{ env.IP }}:${{ env.PORT }}/'
