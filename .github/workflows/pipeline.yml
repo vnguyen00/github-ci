@@ -12,7 +12,7 @@ env:
   PORT: 30002
 
 jobs:
-  main:
+  dependency_check:
     runs-on: 'ubuntu-latest'
     
     steps:
