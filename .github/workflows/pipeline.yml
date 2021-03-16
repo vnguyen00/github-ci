@@ -12,15 +12,14 @@ env:
   PORT: 30002
 
 jobs:
-  fetch-code:
-    build:
-      runs-on: 'ubuntu-latest'
-    name: Fetch Latest Code
-      steps:
-        - uses: actions/checkout@master
-          with:
-            fetch-depth: 0
-  dependcy-check:
+  build:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: Fetch Latest Code
+        uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+
     name: OWASP Dependency Check
     build:
       runs-on: 'ubuntu-latest'
@@ -30,7 +29,6 @@ jobs:
         with:
           Project-Name: ${{ env.IMAGE_NAME }}
 
-check-for-secrets:
     name: Detect Secrets
     build:
       runs-on: 'ubuntu-latest'
@@ -43,7 +41,6 @@ check-for-secrets:
           with:
             commit_message: "build(detect-secrets): Commit the newly-generated .secrets.baseline file"
 
-Build-publish-Image:
     name: Build and Push Image
     needs: [dependcy-check, check-for-secrets]
     build:  
