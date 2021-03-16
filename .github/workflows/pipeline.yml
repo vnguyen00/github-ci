@@ -12,20 +12,27 @@ env:
   PORT: 30002
 
 jobs:
-  build:
+  main:
     runs-on: 'ubuntu-latest'
+    
     steps:
-      - name: Fetch Latest Code
-        uses: actions/checkout@master
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build project with Maven
+        run: mvn clean install
+      
+      - name: Depcheck
+        uses: dependency-check/Dependency-Check_Action@main
+        id: Depcheck
         with:
-          fetch-depth: 0
-
-      - name: OWASP Dependency Check
-        needs: fetch-code
-        steps:
-        uses: sburris/dependency-check-action@master
+          project: 'test'
+          path: '.'
+          format: 'HTML'    
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
         with:
-          Project-Name: ${{ env.IMAGE_NAME }}
+           name: Depcheck report
+           path: ${{github.workspace}}/reports
 
       - name: Detect Secrets
         runs-on: 'ubuntu-latest'
