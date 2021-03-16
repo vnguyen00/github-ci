@@ -20,26 +20,23 @@ jobs:
         with:
           fetch-depth: 0
 
-    name: OWASP Dependency Check
-    build:
-      runs-on: 'ubuntu-latest'
-      needs: fetch-code
-      steps:
-      - uses: sburris/dependency-check-action@master
+      - name: OWASP Dependency Check
+        needs: fetch-code
+        steps:
+        uses: sburris/dependency-check-action@master
         with:
           Project-Name: ${{ env.IMAGE_NAME }}
 
-    name: Detect Secrets
-    build:
-      runs-on: 'ubuntu-latest'
-      needs: fetch-code
-      steps:
-        - name: Run Yelp's detect-secrets
-          uses: RobertFischer/detect-secrets-action@v2.0.0
-        - name: Commit back .secrets.baseline (if it was missing)
-          uses: stefanzweifel/git-auto-commit-action@v4
-          with:
-            commit_message: "build(detect-secrets): Commit the newly-generated .secrets.baseline file"
+      - name: Detect Secrets
+        runs-on: 'ubuntu-latest'
+        needs: fetch-code
+        steps:
+          - name: Run Yelp's detect-secrets
+            uses: RobertFischer/detect-secrets-action@v2.0.0
+          - name: Commit back .secrets.baseline (if it was missing)
+            uses: stefanzweifel/git-auto-commit-action@v4
+            with:
+              commit_message: "build(detect-secrets): Commit the newly-generated .secrets.baseline file"
 
     name: Build and Push Image
     needs: [dependcy-check, check-for-secrets]
